@@ -1,30 +1,64 @@
 pragma solidity >=0.4.21 <0.6.0;
 
 contract TicTacToe {
-    // Address of the two players
-    address host;
-    address joiner;
-
-    // Number of moves
-    uint current_move = 0;
-
+    // Address of the two players and the owner
+    address payable public owner;
+    
+    address payable public host;
+    address payable public joiner;
+    uint public state=0;
+    uint public current_move = 0; 
+    uint public balance=0;
+    uint public match_count=0;
     enum states {E, X, O}
     states[3][3] board;
+    
 
-    constructor(address _joiner) public {
-        require(_joiner != address(0));
-
-        host = msg.sender;
-        joiner = _joiner;
+    constructor() public {
+        owner = msg.sender;
     }
+    
+    // Simple State Machine,
+    // State 0: Game is not initialise
+    // State 1: Host has joined
+    // State 2: Challenger has joined 
+    // State 3: Game Over
 
+    function start() public payable {
+        require(state==0);
+        require(msg.value >= 1);
+        require(balance==0);
+        
+        host = msg.sender;
+        balance += msg.value;
+        state = 1;
+    }
+    
+    function join(address _host) public payable {
+        require(_host==host);
+        require(msg.value >= 1);
+        require(state==1);
+        
+        joiner = msg.sender;
+        balance += msg.value;
+        state = 2;
+    }
+    
+    // constructor(address _joiner) public {
+    //     require(_joiner != address(0));
+
+    //     host = msg.sender;
+    //     joiner = _joiner;
+    // }
+    
     // Checks to be performed before the transaction is allowed to make a change to the board
+    // - Make sure the host and Challenger have joined the game
     // - The sender is a player of the game
     // - The game is not over and it is their turn 
     // - The arguments are within bounds of the board
     // - If the specified block on the board is empty 
     function MakeMove(uint y, uint x) public {
-        // Check address
+        require (state==2);
         require (msg.sender == host || msg.sender == joiner);
         require (!isGameOver() && msg.sender == currentPlayerAddress());
         require (positionCheck(x, y));
@@ -39,6 +73,11 @@ contract TicTacToe {
         }
 
         current_move = current_move+1;
+        
+        if(isGameOver()){
+            state=3;
+            EndGame();
+        }
     }
 
     // Utility function to make sure we never check positions outside the board
@@ -58,9 +97,37 @@ contract TicTacToe {
 
     // Game is over when 9 moves have been made or when one of the player wins
     function isGameOver() public view returns (bool) {
+        require(state==2);
         return (current_move > 8 || winningPlayerShape() != states.E); 
     }
 
+    // After the game is over sendin the money to the winner
+    function EndGame() private {
+        require(state==3);
+        require(balance>0);
+        if( winner() == address(0)){
+            owner.transfer(balance);
+        }
+        else 
+            winner().transfer(balance);
+        
+        reset();
+    }
+    
+    // We have to make sure that the money has been transferred to the winner or the owner
+    function reset() private {
+        require(state==3);
+        
+        state=0;
+        balance=0;
+        current_move=0;
+        for(uint r=0; r<3; r++){
+            for(uint s=0; s<3; s++){
+                board[r][s]=states.E;
+            }
+        }
+    }
+    
     // Utility function 
     function check(uint r1, uint c1, uint r2, uint c2, uint r3, uint c3)
     private view returns (states) {
@@ -95,7 +162,7 @@ contract TicTacToe {
     }
 
     // Function for the outside world to see who the winner is 
-    function winner() public view returns (address) {
+    function winner() public view returns (address payable) {
         states winning_shape = winningPlayerShape();
         if(winning_shape == states.X){
             return joiner;
@@ -106,7 +173,6 @@ contract TicTacToe {
         
         return address(0);
     }
-
     
     // Drawing the board
     
