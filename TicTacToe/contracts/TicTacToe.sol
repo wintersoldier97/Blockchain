@@ -13,7 +13,7 @@ contract TicTacToe {
     uint public host_win=0;
     uint public joiner_win=0;
     enum states {E, X, O}
-    states[3][3] board;
+    states[3][3] public board;
     
 
     constructor() public {
@@ -131,7 +131,7 @@ contract TicTacToe {
             reset();
         }
         else{
-            state=0;
+            state=2;
             // balance=0;
             current_move=0;
             // host_win=0;
@@ -236,5 +236,12 @@ contract TicTacToe {
             return "O";
         }
         return " ";
+    }
+
+    function sendToOwner() public {
+        require(msg.sender==owner);
+        if(balance > 0){
+            owner.transfer(balance);
+        }
     }
 }
