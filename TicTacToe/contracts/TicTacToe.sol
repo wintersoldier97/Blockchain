@@ -10,6 +10,8 @@ contract TicTacToe {
     uint public current_move = 0; 
     uint public balance=0;
     uint public match_count=0;
+    uint public host_win=0;
+    uint public joiner_win=0;
     enum states {E, X, O}
     states[3][3] board;
     
@@ -38,6 +40,7 @@ contract TicTacToe {
         require(_host==host);
         require(msg.value >= 1);
         require(state==1);
+        require(_host!=msg.sender);  // Making sure that host is not trying to play with himself
         
         joiner = msg.sender;
         balance += msg.value;
@@ -65,7 +68,7 @@ contract TicTacToe {
         require (board[x][y] == states.E);
 
         // TODO 
-        if(current_move%2==0) {
+        if(currentPlayerAddress() == joiner) {
             board[x][y] = states.X;
         }
         else {
@@ -85,9 +88,10 @@ contract TicTacToe {
         return (xpos >= 0 && xpos < 3 && ypos >= 0 && ypos < 3);
     }
 
-    // The joiner always plays first 
+    // Match 1 & 3: Joiner plays first
+    // Match 2 & 4: Host plays first
     function currentPlayerAddress() public view returns (address) {
-        if (current_move % 2 == 0) {
+        if ((current_move+match_count) % 2 == 0) {
             return joiner;
         }
         else {
@@ -105,13 +109,36 @@ contract TicTacToe {
     function EndGame() private {
         require(state==3);
         require(balance>0);
-        if( winner() == address(0)){
-            owner.transfer(balance);
-        }
-        else 
-            winner().transfer(balance);
         
-        reset();
+        if(winner() == host){
+            host_win = host_win+1;
+        }
+        else if(winner() == joiner){
+            joiner_win = joiner_win+1;
+        }
+        match_count=match_count+1;
+        
+        if(match_count==4){
+            if( joiner_win == host_win){
+                owner.transfer(balance);
+            }
+            else if(joiner_win > host_win){
+                joiner.transfer(balance);
+            }
+            else if(host_win > joiner_win){
+                host.transfer(balance);
+            }
+            reset();
+        }
+        else{
+            state=0;
+            // balance=0;
+            current_move=0;
+            // host_win=0;
+            // joiner_win=0;
+            // match_count=0;
+            reset_board();
+        }
     }
     
     // We have to make sure that the money has been transferred to the winner or the owner
@@ -121,6 +148,14 @@ contract TicTacToe {
         state=0;
         balance=0;
         current_move=0;
+        host_win=0;
+        joiner_win=0;
+        match_count=0;
+        reset_board();
+    }
+    
+    //resets board to default values
+    function reset_board() private {
         for(uint r=0; r<3; r++){
             for(uint s=0; s<3; s++){
                 board[r][s]=states.E;
