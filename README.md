@@ -1,5 +1,5 @@
 # Blockchain
 
 TODO
-1. Transfer of funds from losing side to winning side.
-2. 3-4 rounds should be played to decide winner.
+1. Test cases
+2. Best of 4 matches
