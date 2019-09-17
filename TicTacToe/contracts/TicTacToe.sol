@@ -6,13 +6,13 @@ contract TicTacToe {
     address joiner;
 
     // Number of moves
-    uint8 current_move = 0;
+    uint current_move = 0;
 
-    enum states {E, X, O};
+    enum states {E, X, O}
     states[3][3] board;
 
     constructor(address _joiner) public {
-        require(_joiner != 0x0);
+        require(_joiner != address(0));
 
         host = msg.sender;
         joiner = _joiner;
@@ -23,32 +23,32 @@ contract TicTacToe {
     // - The game is not over and it is their turn 
     // - The arguments are within bounds of the board
     // - If the specified block on the board is empty 
-    function MakeMove(uint8 x, uint8 y) public {
+    function MakeMove(uint y, uint x) public {
         // Check address
         require (msg.sender == host || msg.sender == joiner);
-        require (!isGameOver() && msg.sender == currentPlayerAddress);
+        require (!isGameOver() && msg.sender == currentPlayerAddress());
         require (positionCheck(x, y));
         require (board[x][y] == states.E);
 
         // TODO 
         if(current_move%2==0) {
-            board[x][y] = state.X;
+            board[x][y] = states.X;
         }
         else {
-            board[x][y] = state.O;
+            board[x][y] = states.O;
         }
 
         current_move = current_move+1;
     }
 
     // Utility function to make sure we never check positions outside the board
-    function positionCheck(uint8 xpos, uint8 ypos) public pure returns (bool) {
+    function positionCheck(uint xpos, uint ypos) private pure returns (bool) {
         return (xpos >= 0 && xpos < 3 && ypos >= 0 && ypos < 3);
     }
 
     // The joiner always plays first 
     function currentPlayerAddress() public view returns (address) {
-        if (curren_move % 2 == 0) {
+        if (current_move % 2 == 0) {
             return joiner;
         }
         else {
@@ -58,52 +58,82 @@ contract TicTacToe {
 
     // Game is over when 9 moves have been made or when one of the player wins
     function isGameOver() public view returns (bool) {
-        return (current_move > 8 || winningPlayerShape() != state.E); 
+        return (current_move > 8 || winningPlayerShape() != states.E); 
     }
 
     // Utility function 
-    function check(uint8 r1, uint8 c1, uint8 r2, uint8 c2, uint8 r3, uint8 c3)
-    private view returns (state) {
-        if(board[r1][c1]!=state.E && board[r1][c1]==board[r2][c2] && board[r2][c2]==board[r3][c3])
+    function check(uint r1, uint c1, uint r2, uint c2, uint r3, uint c3)
+    private view returns (states) {
+        if(board[r1][c1]!=states.E && board[r1][c1]==board[r2][c2] && board[r2][c2]==board[r3][c3])
             return board[r1][c1];
         else
-            return state.E;
+            return states.E;
     }
 
     // Function to check if the board has a winner and returns the winning shape
-    function winningPlayerShape() public view returns (state) {
+    function winningPlayerShape() private view returns (states) {
         // Check rows
         for(uint r=0; r<3; r++){
-            if(check(r,0,r,1,r,2)!=state.E)
+            if(check(r,0,r,1,r,2) != states.E)
                 return check(r,0,r,1,r,2);
         }
 
         // Check coloumns
         for(uint r=0; r<3; r++){
-            if(check(0,r,1,r,2,r)!=state.E)
+            if(check(0,r,1,r,2,r)!=states.E)
                 return check(0,r,1,r,2,r);
         }
 
         // Check diagonals
 
-        if(check(0,0,1,1,2,2) != state.E)
+        if(check(0,0,1,1,2,2) != states.E)
             return check(0,0,1,1,2,2);
-        if(check(0,2,1,1,2,0) != state.E)
+        if(check(0,2,1,1,2,0) != states.E)
             return check(0,2,1,1,2,0);
 
-        return state.E;
+        return states.E;
     }
 
     // Function for the outside world to see who the winner is 
-    function winner() public view return (address) {
-        state winning_shape = winningPlayerShape();
-        if(winning_shape == state.X){
+    function winner() public view returns (address) {
+        states winning_shape = winningPlayerShape();
+        if(winning_shape == states.X){
             return joiner;
         }
-        else if(winning_shape == state.O) {
+        else if(winning_shape == states.O) {
             return host;
         }
         
-        return 0x0;
+        return address(0);
+    }
+
+    
+    // Drawing the board
+    
+    function stateToString() public view returns (string memory) {
+        return string(abi.encodePacked("\n",
+            colToString(0), "\n",
+            colToString(1), "\n",
+            colToString(2), "\n"
+        ));
+    }
+    
+    function colToString(uint pos) private view returns (string memory) {
+        return string(abi.encodePacked(squareToString(0, pos), "|", squareToString(1, pos), "|", squareToString(2, pos)));
+    }
+    
+    function squareToString(uint xpos, uint ypos) private view returns (string memory){
+        require (positionCheck(xpos, ypos));
+        
+        if(board[xpos][ypos] == states.E){
+            return " ";
+        }
+        else if(board[xpos][ypos] == states.X){
+            return "X";
+        }
+        else if(board[xpos][ypos] == states.O){
+            return "O";
+        }
+        return " ";
     }
 }
