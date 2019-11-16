@@ -27,39 +27,23 @@ contract TicTacToe
         owner = msg.sender;
     }
 
-    // Random number generator. Due to the constraints of blockchain TM, not perfectly random: but it will do
-    // Generates a random number between 0 and 51.
-    function generateGameID()
-        internal
-        view
-        returns (uint8)
-    {
-        return uint8(uint256(keccak256(abi.encodePacked(now, block.difficulty))) % 52);
-    }
-
     // Simple State Machine
     // State 0: Game is not initialise
     // State 1: Host has joined
     // State 2: Challenger has joined
     // State 3: Game Over
 
-    function create()
+    function create(uint8 id)
         public
         payable
-        returns (uint8)
     {
+        require(games[id].state == 0, "Game ID already exists");
         require(msg.value >= 1, "Send a minimum of 1 Wei");
         require(msg.sender != owner, "Owner of contract can't take part in the game");
-
-        uint8 id = generateGameID();
-        // If there are 52 games, make a check to not create more games
-        while (games[id].host != address(0))
-            id = generateGameID();
 
         games[id].host = msg.sender;
         games[id].balance = msg.value;
         games[id].state = 1;
-        return id;
     }
 
     function join(uint8 id)
@@ -82,7 +66,7 @@ contract TicTacToe
     // - The game is not over and it is their turn
     // - The arguments are within bounds of the board
     // - If the specified block on the board is empty
-    function MakeMove(uint8 id, uint8 y, uint8 x)
+    function makeMove(uint8 id, uint8 y, uint8 x)
         public
     {
         require (games[id].state == 2, "Player has not joined the game");
@@ -250,9 +234,9 @@ contract TicTacToe
     {
         return string(
             abi.encodePacked(
-            colToString(id, 0), "\n",
-            colToString(id, 1), "\n",
-            colToString(id, 2), "\n"
+            colToString(id, 0), "|",
+            colToString(id, 1), "|",
+            colToString(id, 2)
         ));
     }
 
