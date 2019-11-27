@@ -77,9 +77,19 @@ contract TicTacToe
         require (games[id].board[x][y] == states.E, "This board position is already filled");
 
         if(currentPlayerAddress(id) == games[id].joiner)
-            games[id].board[x][y] = states.X;
+        {
+            if (games[id].match_count % 2 == 1)
+                games[id].board[x][y] = states.O;
+            else
+                games[id].board[x][y] = states.X;
+        }
         else
-            games[id].board[x][y] = states.O;
+        {
+            if (games[id].match_count % 2 == 0)
+                games[id].board[x][y] = states.O;
+            else
+                games[id].board[x][y] = states.X;
+        }
 
         games[id].current_move = games[id].current_move + 1;
 
@@ -136,7 +146,7 @@ contract TicTacToe
 
         games[id].match_count = games[id].match_count + 1;
 
-        if(games[id].match_count == 4)
+        if(games[id].match_count == 1)
         {
             if( games[id].joiner_win == games[id].host_win)
                 owner.transfer(games[id].balance);
@@ -210,18 +220,26 @@ contract TicTacToe
         return states.E;
     }
 
-    // Function for the outside world to see who the winner is
+    // Function to get winner of current game
     function winner(uint8 id)
-        public
+        private
         view
         returns (address payable)
     {
         states winning_shape = winningPlayerShape(id);
-        if(winning_shape == states.X) {
-            return games[id].joiner;
+        if (games[id].match_count % 2 == 0)
+        {
+            if(winning_shape == states.X)
+                return games[id].joiner;
+            else if(winning_shape == states.O)
+                return games[id].host;
         }
-        else if(winning_shape == states.O) {
-            return games[id].host;
+        else
+        {
+            if(winning_shape == states.O)
+                return games[id].joiner;
+            else if(winning_shape == states.X)
+                return games[id].host;
         }
         return address(0);
     }

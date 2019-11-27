@@ -16,12 +16,16 @@ class App extends Component
     super(props);
     this.state = {
       account: 0x0,
-      isRoomCreator: false,
+      isHost: false,
       isDisabled: false,
       isPlaying: false,
     };
-    // let web3 = window.web3;
+    this.roomId = null;
+  }
 
+  async componentDidMount()
+  {
+    // Load the blockchain
     if (typeof web3 !== 'undefined')
     {
       this.web3Provider = web3.currentProvider;
@@ -34,36 +38,40 @@ class App extends Component
 
     this.tictactoe = TruffleContract(TicTacToe);
     this.tictactoe.setProvider(this.web3Provider);
-    this.roomId = null;
+    this.tictactoeInstance = await this.tictactoe.deployed();
+    var account = await this.web3.eth.getCoinbase();
+    account = account.toLowerCase();
+    this.setState({ account: account });
 
+    // Set a timer to check whether someone has joined the game or not
+    this.updateApp = setInterval(
+      () => this.checkRoom(),
+      1000
+    );
+  }
+
+  async checkRoom()
+  {
+    if (this.roomId != null)
+    {
+      var curr_game = await this.tictactoeInstance.games(this.roomId);
+      if (curr_game.state.toNumber() == 2)
+      {
+        this.setState({ isPlaying: true });
+        clearInterval(this.updateApp);
+      }
+    }
   }
 
   componentWillUnmount()
   {
-    // Reset the game or something
-  }
-
-  async componentDidUpdate()
-  {
-    // Check that the player has created or joined the game
-    if (this.roomId != null)
-    {
-      var curr_game = await this.tictactoeInstance.games(this.roomId);
-      if (curr_game.state == 2)
-      {
-        this.setState({ isPlaying: true });
-        Swal.close();
-      }
-    }
+    // Reset the game
   }
 
   // Create a room channel
   onPressCreate = async (e) =>
   {
-    this.tictactoeInstance = await this.tictactoe.deployed();
-    var account = await this.web3.eth.getCoinbase();
-    this.setState({ account: account });
-    var val = this.web3.utils.toWei("0.0001", "ether");
+    var val = this.web3.utils.toWei("2", "ether");
     this.roomId = Math.floor(Math.random() * 52);
     await this.tictactoeInstance.create(this.roomId, { from: this.state.account, value: val });
 
@@ -84,11 +92,9 @@ class App extends Component
         confirmButton: 'button-class'
       }
     })
-
     this.setState({
-      isRoomCreator: true,
-      isDisabled: true, // Disable the 'Create' button
-      isPlaying: true,
+      isDisabled: true,
+      isHost: true
     });
   }
 
@@ -119,16 +125,11 @@ class App extends Component
       {
         this.roomId = result.value;
         console.log(this.roomId);
-        var account = await this.web3.eth.getCoinbase();
-        this.tictactoeInstance = await this.tictactoe.deployed();
-        this.setState({ account: account });
         // TODO Add an option to change the amount of ether
-        var val = this.web3.utils.toWei("0.0001", "ether");
+        var val = this.web3.utils.toWei("2", "ether");
         await this.tictactoeInstance.join(this.roomId, { from: this.state.account, value: val });
 
         this.setState({
-          isRoomCreator: false,
-          isDisabled: true,
           isPlaying: true,
         });
       }
@@ -138,17 +139,17 @@ class App extends Component
   // Reset everything
   endGame = () =>
   {
+    this.roomId = null;
     this.setState({
       account: 0x0,
-      isRoomCreator: false,
       isDisabled: false,
       isPlaying: false,
     });
-    this.roomId = null;
   }
 
   render()
   {
+    console.log("Rendered");
     return (
       <div>
         <div className="title">
@@ -166,13 +167,14 @@ class App extends Component
 
               <div className="button-container">
                 <button
-                  className="create-button "
+                  className="create-button"
                   disabled={this.state.isDisabled}
                   onClick={(e) => this.onPressCreate()}
                 > Create
                   </button>
                 <button
                   className="join-button"
+                  disabled={this.state.isDisabled}
                   onClick={(e) => this.onPressJoin()}
                 > Join
                   </button>
@@ -187,8 +189,8 @@ class App extends Component
           <Game
             account={this.state.account}
             roomId={this.roomId}
+            isHost={this.state.isHost}
             tictactoeInstance={this.tictactoeInstance}
-            isRoomCreator={this.state.isRoomCreator}
             endGame={this.endGame}
           />
         }
@@ -199,5 +201,5 @@ class App extends Component
 
 ReactDOM.render(
   <App />,
-  document.querySelector('#root')
+  document.getElementById('root')
 )
