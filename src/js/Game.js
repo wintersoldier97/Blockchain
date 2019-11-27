@@ -16,7 +16,7 @@ class Game extends React.Component
     }
   }
 
-  componentDidMount()
+  componentWillMount()
   {
     // Need to get the updated board, check if it is current instance's turn to play
     // If so, then the opponent has moved and the board needs to be updated
@@ -116,21 +116,7 @@ class Game extends React.Component
     // Index is between 0 and 9. Send it appropriately to blockchain
     if (!this.state.isMyTurn)
     {
-      Swal.fire({
-        position: 'top',
-        allowOutsideClick: false,
-        title: 'Please wait for your turn',
-        text: '',
-        width: 275,
-        padding: '0.7em',
-        // Custom CSS
-        customClass: {
-          heightAuto: false,
-          title: 'title-class',
-          popup: 'popup-class',
-          confirmButton: 'button-class'
-        }
-      })
+      this.fireAlert('Please wait for your turn');
       return;
     }
     let x = Math.floor(index / 3);

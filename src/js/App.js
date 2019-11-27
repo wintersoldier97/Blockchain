@@ -63,11 +63,6 @@ class App extends Component
     }
   }
 
-  componentWillUnmount()
-  {
-    // Reset the game
-  }
-
   // Create a room channel
   onPressCreate = async (e) =>
   {
