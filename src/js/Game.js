@@ -16,7 +16,7 @@ class Game extends React.Component
     }
   }
 
-  componentWillMount()
+  componentDidMount()
   {
     // Need to get the updated board, check if it is current instance's turn to play
     // If so, then the opponent has moved and the board needs to be updated
